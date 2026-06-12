@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do-Lists</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-container">
+      <h1>To-Do-Lists</h1>
+      <form id="loginForm" class="login-form">
+        <div id="loginError" class="login-error"></div>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter your username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="login-btn">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-layout" style="display: none;">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Menu</h1>
+      </div>
+
+      <div class="search-box">
+        <input type="text" placeholder="Search" id="searchInput">
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">TASKS</h3>
+        <nav class="nav-list">
+          <button class="nav-item" id="todayBtn">
+            <span class="icon">📅</span>
+            <span>Today</span>
+            <span class="count" id="todayCount">0</span>
+          </button>
+          <button class="nav-item" id="upcomingBtn">
+            <span class="icon">📅</span>
+            <span>Upcoming</span>
+            <span class="count" id="upcomingCount">0</span>
+          </button>
+          <button class="nav-item" id="calendarBtn">
+            <span class="icon">📆</span>
+            <span>Calendar</span>
+          </button>
+          <button class="nav-item" id="stickyBtn">
+            <span class="icon">📌</span>
+            <span>Sticky Wall</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">LISTS</h3>
+        <nav class="nav-list">
+          <button class="nav-item list-item" id="personalList">
+            <span class="list-dot personal"></span>
+            <span>Personal</span>
+            <span class="count" id="personalCount">0</span>
+          </button>
+          <button class="nav-item list-item" id="workList">
+            <span class="list-dot work"></span>
+            <span>Work</span>
+            <span class="count" id="workCount">0</span>
+          </button>
+        </nav>
+        <button class="add-new-list">+ Add New List</button>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="section-title">TAGS</h3>
+        <div class="tags-list">
+          <span class="tag">Tag 1</span>
+          <span class="tag">Tag 2</span>
+          <button class="add-tag">+ Add Tag</button>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="footer-item">⚙️ Settings</button>
+        <div class="user-info">
+          <span id="loggedInUser">User</span>
+        </div>
+        <button class="footer-item" id="signOutBtn">🚪 Sign out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="main-header">
+        <h2 id="mainTitle">Today</h2>
+        <span class="header-count" id="headerCount">0</span>
+      </div>
+
+      <button class="add-task-button" id="addNewTaskBtn">+ Add New Task</button>
+
+      <div class="tasks-container">
+        <ul id="tasksList" class="tasks-list"></ul>
+      </div>
+    </main>
+
+    <!-- Right Sidebar - Task Details -->
+    <aside class="details-panel">
+      <div class="details-header">
+        <h3>Task:</h3>
+        <span id="selectedTaskTitle" class="selected-task">Select a task</span>
+      </div>
+
+      <div class="details-section">
+        <label>Description</label>
+        <textarea id="taskDescription" placeholder="Add description here..."></textarea>
+      </div>
+
+      <div class="details-section">
+        <label>List</label>
+        <select id="taskList">
+          <option value="personal">Personal</option>
+          <option value="work">Work</option>
+        </select>
+      </div>
+
+      <div class="details-section">
+        <label>Due date</label>
+        <input type="date" id="taskDueDate">
+      </div>
+
+      <div class="details-section">
+        <label>Tags</label>
+        <div class="tags-input">
+          <span class="tag-badge">Tag 1</span>
+          <button class="add-tag-btn">+ Add Tag</button>
+        </div>
+      </div>
+
+      <div class="details-section">
+        <h4>Subtasks:</h4>
+        <button class="add-subtask-btn">+ Add New Subtask</button>
+        <div id="subtasksList"></div>
+      </div>
+
+      <div class="details-actions">
+        <button class="btn-delete">Delete Task</button>
+        <button class="btn-save">Save changes</button>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Login functionality
+    const loginScreen = document.getElementById('loginScreen');
+    const loginForm = document.getElementById('loginForm');
+    const appLayout = document.querySelector('.app-layout');
+    const loggedInUser = document.getElementById('loggedInUser');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    function checkLogin() {
+      const user = localStorage.getItem('loggedInUser');
+      if (user) {
+        loginScreen.style.display = 'none';
+        appLayout.style.display = 'grid';
+        loggedInUser.textContent = user;
+      } else {
+        loginScreen.style.display = 'flex';
+        appLayout.style.display = 'none';
+      }
+    }
+
+    // Predefined credentials
+    const validCredentials = {
+      'mohan': 'password123',
+      'admin': 'admin123',
+      'user': 'user123'
+    };
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const loginError = document.getElementById('loginError');
+      
+      if (validCredentials[username] === password) {
+        loginError.textContent = '';
+        localStorage.setItem('loggedInUser', username);
+        loggedInUser.textContent = username;
+        loginScreen.style.display = 'none';
+        appLayout.style.display = 'grid';
+        loginForm.reset();
+      } else {
+        loginError.textContent = '❌ Invalid username or password';
+        document.getElementById('password').value = '';
+      }
+    });
+
+    signOutBtn.addEventListener('click', () => {
+      localStorage.removeItem('loggedInUser');
+      loginScreen.style.display = 'flex';
+      appLayout.style.display = 'none';
+      loginForm.reset();
+    });
+
+    checkLogin();
+
+    const tasks = [];
+    let selectedTaskIndex = -1;
+
+    const tasksList = document.getElementById('tasksList');
+    const addNewTaskBtn = document.getElementById('addNewTaskBtn');
+    const mainTitle = document.getElementById('mainTitle');
+    const headerCount = document.getElementById('headerCount');
+
+    // Navigation buttons
+    const todayBtn = document.getElementById('todayBtn');
+    const upcomingBtn = document.getElementById('upcomingBtn');
+    const calendarBtn = document.getElementById('calendarBtn');
+    const stickyBtn = document.getElementById('stickyBtn');
+    const personalList = document.getElementById('personalList');
+    const workList = document.getElementById('workList');
+
+    // Details panel elements
+    const selectedTaskTitle = document.getElementById('selectedTaskTitle');
+    const taskDescription = document.getElementById('taskDescription');
+    const taskList = document.getElementById('taskList');
+    const taskDueDate = document.getElementById('taskDueDate');
+    const btnDelete = document.querySelector('.btn-delete');
+    const btnSave = document.querySelector('.btn-save');
+
+    let currentView = 'sticky';
+    let currentListFilter = null;
+
+    // Save tasks to localStorage
+    function saveTasks() {
+      localStorage.setItem('todoTasks', JSON.stringify(tasks));
+    }
+
+    // Load tasks from localStorage
+    function loadTasks() {
+      const saved = localStorage.getItem('todoTasks');
+      if (saved) {
+        try {
+          tasks.push(...JSON.parse(saved));
+        } catch (e) {
+          console.log('Error loading tasks');
+        }
+      }
+    }
+
+    function renderTasks() {
+      tasksList.innerHTML = '';
+
+      let filteredTasks = tasks;
+      const today = new Date().toISOString().split('T')[0];
+
+      if (currentView === 'today') {
+        filteredTasks = tasks.filter(t => t.dueDate === today);
+      } else if (currentView === 'upcoming') {
+        filteredTasks = tasks.filter(t => t.dueDate && t.dueDate > today);
+      } else if (currentView === 'sticky') {
+        filteredTasks = tasks;
+      }
+
+      if (currentListFilter) {
+        filteredTasks = filteredTasks.filter(t => t.list === currentListFilter);
+      }
+
+      if (filteredTasks.length === 0) {
+        const emptyMsg = document.createElement('li');
+        emptyMsg.className = 'empty-message';
+        emptyMsg.textContent = 'No tasks.';
+        tasksList.appendChild(emptyMsg);
+        return;
+      }
+
+      // Different rendering for sticky wall view
+      if (currentView === 'sticky') {
+        tasksList.classList.add('sticky-wall');
+        filteredTasks.forEach((task, idx) => {
+          const globalIdx = tasks.indexOf(task);
+          const taskItem = document.createElement('li');
+          taskItem.className = 'sticky-note';
+          
+          const colors = ['#FFE66D', '#FF6B6B', '#4ECDC4', '#95E1D3', '#F38181', '#FCBAD3'];
+          const color = colors[globalIdx % colors.length];
+          const rotation = (globalIdx * 7) % 10 - 5;
+          
+          taskItem.style.backgroundColor = color;
+          taskItem.style.transform = `rotate(${rotation}deg)`;
+          
+          taskItem.innerHTML = `
+            <div class="sticky-content">
+              <div class="sticky-title">${task.title}</div>
+              ${task.description ? `<div class="sticky-desc">${task.description}</div>` : ''}
+              <div class="sticky-meta">
+                ${task.dueDate ? `<small>📅 ${task.dueDate}</small>` : ''}
+              </div>
+            </div>
+            <input type="checkbox" class="sticky-checkbox" ${task.done ? 'checked' : ''}>
+          `;
+          
+          taskItem.querySelector('.sticky-checkbox').addEventListener('change', (e) => {
+            tasks[globalIdx].done = e.target.checked;
+            renderTasks();
+            updateStats();
+          });
+          
+          taskItem.addEventListener('click', () => selectTask(globalIdx));
+          tasksList.appendChild(taskItem);
+        });
+      } else {
+        tasksList.classList.remove('sticky-wall');
+        filteredTasks.forEach((task, idx) => {
+          const globalIdx = tasks.indexOf(task);
+          const taskItem = document.createElement('li');
+          taskItem.className = 'task-item';
+          if (task.done) taskItem.classList.add('done');
+
+          taskItem.innerHTML = `
+            <input type="checkbox" class="task-checkbox" ${task.done ? 'checked' : ''}>
+            <div class="task-info">
+              <div class="task-title">${task.title}</div>
+              <div class="task-meta">
+                ${task.dueDate ? `<span class="meta-item">📅 ${task.dueDate}</span>` : ''}
+                <span class="meta-item list-badge" style="background: ${task.list === 'work' ? '#3B82F6' : '#EF4444'}">${task.list}</span>
+              </div>
+            </div>
+            <span class="task-arrow">›</span>
+          `;
+
+          taskItem.querySelector('.task-checkbox').addEventListener('change', (e) => {
+            tasks[globalIdx].done = e.target.checked;
+            renderTasks();
+            updateStats();
+          });
+
+          taskItem.addEventListener('click', () => selectTask(globalIdx));
+
+          tasksList.appendChild(taskItem);
+        });
+      }
+
+      updateStats();
+    }
+
+    function selectTask(index) {
+      selectedTaskIndex = index;
+      const task = tasks[index];
+
+      selectedTaskTitle.textContent = task.title;
+      taskDescription.value = task.description || '';
+      taskList.value = task.list || 'personal';
+      taskDueDate.value = task.dueDate || '';
+
+      document.querySelectorAll('.task-item').forEach(item => item.classList.remove('selected'));
+      const items = document.querySelectorAll('.task-item');
+      if (items.length > 0) items[0].classList.add('selected');
+    }
+
+    function updateStats() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('todayCount').textContent = tasks.filter(t => t.dueDate === today).length;
+      document.getElementById('upcomingCount').textContent = tasks.filter(t => t.dueDate && t.dueDate > today).length;
+      document.getElementById('personalCount').textContent = tasks.filter(t => t.list === 'personal').length;
+      document.getElementById('workCount').textContent = tasks.filter(t => t.list === 'work').length;
+      
+      let count = 0;
+      if (currentView === 'today') count = tasks.filter(t => t.dueDate === today).length;
+      else if (currentView === 'upcoming') count = tasks.filter(t => t.dueDate && t.dueDate > today).length;
+      else count = tasks.length;
+      
+      headerCount.textContent = count;
+    }
+
+    addNewTaskBtn.addEventListener('click', () => {
+      const title = prompt('Enter task title:');
+      if (!title) return;
+
+      tasks.push({
+        title: title.trim(),
+        done: false,
+        description: '',
+        list: 'personal',
+        dueDate: new Date().toISOString().split('T')[0],
+        subtasks: []
+      });
+
+      renderTasks();
+      saveTasks();
+    });
+
+    btnDelete.addEventListener('click', () => {
+      if (selectedTaskIndex >= 0) {
+        tasks.splice(selectedTaskIndex, 1);
+        selectedTaskIndex = -1;
+        selectedTaskTitle.textContent = 'Select a task';
+        renderTasks();
+        saveTasks();
+      }
+    });
+
+    btnSave.addEventListener('click', () => {
+      if (selectedTaskIndex >= 0) {
+        tasks[selectedTaskIndex].description = taskDescription.value;
+        tasks[selectedTaskIndex].list = taskList.value;
+        tasks[selectedTaskIndex].dueDate = taskDueDate.value;
+        saveTasks();
+        renderTasks();
+        updateStats();
+        alert('Task saved!');
+      }
+    });
+
+    todayBtn.addEventListener('click', () => { currentView = 'today'; currentListFilter = null; mainTitle.textContent = 'Today'; renderTasks(); });
+    upcomingBtn.addEventListener('click', () => { currentView = 'upcoming'; currentListFilter = null; mainTitle.textContent = 'Upcoming'; renderTasks(); });
+    calendarBtn.addEventListener('click', () => { currentView = 'calendar'; currentListFilter = null; mainTitle.textContent = 'Calendar'; renderTasks(); });
+    stickyBtn.addEventListener('click', () => { currentView = 'sticky'; currentListFilter = null; mainTitle.textContent = 'Sticky Wall'; renderTasks(); });
+    personalList.addEventListener('click', () => { currentListFilter = 'personal'; mainTitle.textContent = 'Personal'; renderTasks(); });
+    workList.addEventListener('click', () => { currentListFilter = 'work'; mainTitle.textContent = 'Work'; renderTasks(); });
+
+    // Load tasks on startup
+    loadTasks();
+    mainTitle.textContent = 'Sticky Wall';
+    renderTasks();
+    updateStats();
+  </script>
+</body>
+</html>
+
